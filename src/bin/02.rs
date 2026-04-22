@@ -1,6 +1,8 @@
+use std::ops::RangeInclusive;
+
 advent_of_code::solution!(2);
 
-fn count_base_10_digits(n: u64) -> u64 {
+fn count_base_10_digits(n: u64) -> u32 {
     let mut comp = 10;
     let mut count = 1;
 
@@ -26,31 +28,69 @@ fn split_base_10_in_half(n: u64, digit_count: u32) -> (u64, u64) {
     (n / pow, n % pow)
 }
 
+fn extract_ranges_with_even_number_of_digits(
+    result: &mut Vec<(u32, RangeInclusive<u64>)>,
+    low: u64,
+    high: u64,
+) {
+    let mut start_digits = count_base_10_digits(low);
+
+    // select starting point with even number of digits, e.g. 4000 is 4 digits
+    let mut start = if start_digits.is_multiple_of(2) {
+        low
+    } else {
+        let new_low = 10u64.pow(start_digits);
+        start_digits += 1;
+
+        if high < new_low {
+            return;
+        }
+
+        new_low
+    };
+
+    loop {
+        if high < start {
+            break;
+        }
+
+        // calculate last valid number with `start_digits` number of digits
+        let end = (10u64.pow(start_digits) - 1).min(high);
+        result.push((start_digits, start..=end));
+
+        start_digits += 2;
+        start = 10u64.pow(start_digits - 1)
+    }
+}
+
+fn parse_input(input: &str) -> impl Iterator<Item = (u64, u64)> {
+    input.split(',').map(|s| {
+        let mut split = s.split('-');
+
+        #[inline]
+        fn extract(split: &mut std::str::Split<char>) -> u64 {
+            split.next().unwrap().parse::<u64>().unwrap()
+        }
+
+        (extract(&mut split), extract(&mut split))
+    })
+}
+
 pub fn part_one(input: &str) -> Option<u64> {
     let mut invalid_sum = 0;
 
-    for range_str in input.split(',') {
-        let (low, high) = {
-            let mut split = range_str.split('-');
+    let mut test_ranges = Vec::new();
 
-            #[inline]
-            fn extract(split: &mut std::str::Split<char>) -> u64 {
-                split.next().unwrap().parse::<u64>().unwrap()
-            }
+    for (low, high) in parse_input(input) {
+        test_ranges.clear();
+        extract_ranges_with_even_number_of_digits(&mut test_ranges, low, high);
 
-            (extract(&mut split), extract(&mut split))
-        };
-
-        for i in low..=high {
-            let digits = count_base_10_digits(i);
-
-            if !digits.is_multiple_of(2) {
-                continue;
-            }
-
-            let (a, b) = split_base_10_in_half(i, digits as u32);
-            if a == b {
-                invalid_sum += i;
+        for (digits, range) in test_ranges.iter().cloned() {
+            for i in range {
+                let (a, b) = split_base_10_in_half(i, digits);
+                if a == b {
+                    invalid_sum += i;
+                }
             }
         }
     }
@@ -106,5 +146,25 @@ mod tests {
         assert_eq!(split_base_10_in_half(1432, 4), (14, 32));
         assert_eq!(split_base_10_in_half(1010, 4), (10, 10));
         assert_eq!(split_base_10_in_half(59124592, 8), (5912, 4592));
+    }
+
+    #[test]
+    fn test_extract_ranges_with_even_number_of_digits() {
+        let mut vec = Vec::new();
+
+        extract_ranges_with_even_number_of_digits(&mut vec, 0, 10);
+        assert_eq!(vec, vec![(2, 10..=10)]);
+
+        vec.clear();
+        extract_ranges_with_even_number_of_digits(&mut vec, 0, 100);
+        assert_eq!(vec, vec![(2, 10..=99)]);
+
+        vec.clear();
+        extract_ranges_with_even_number_of_digits(&mut vec, 13, 100);
+        assert_eq!(vec, vec![(2, 13..=99)]);
+
+        vec.clear();
+        extract_ranges_with_even_number_of_digits(&mut vec, 4531, 777777);
+        assert_eq!(vec, vec![(4, 4531..=9999), (6, 100000..=777777)]);
     }
 }
