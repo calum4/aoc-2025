@@ -1,6 +1,22 @@
 advent_of_code::solution!(2);
 
-fn count_base_10_digits(n: u64) -> u32 {
+// static to avoid duplication across memory
+static POW_10: [u64; 20] = calc_pow_10();
+
+const fn calc_pow_10<const T: usize>() -> [u64; T] {
+    let mut pow_10s = [1; T];
+
+    let mut i = 1;
+
+    while i < T {
+        pow_10s[i] = u64::saturating_mul(pow_10s[i - 1], 10);
+        i += 1;
+    }
+
+    pow_10s
+}
+
+fn count_base_10_digits(n: u64) -> usize {
     let mut comp = 10;
     let mut count = 1;
 
@@ -21,18 +37,18 @@ fn count_base_10_digits(n: u64) -> u32 {
     count
 }
 
-fn split_base_10_in_half(n: u64, digit_count: u32) -> (u64, u64) {
-    let pow = 10u64.pow(digit_count / 2);
+fn split_base_10_in_half(n: u64, digit_count: usize) -> (u64, u64) {
+    let pow = POW_10[digit_count / 2];
     (n / pow, n % pow)
 }
 
 fn combine_base_10(a: u64, b: u64) -> u64 {
     let b_digits = count_base_10_digits(b);
-    (a * (10u64.pow(b_digits))) + b
+    (a * (POW_10[b_digits])) + b
 }
 
 fn extract_ranges_with_even_number_of_digits(
-    result: &mut Vec<(u32, u64, u64)>,
+    result: &mut Vec<(usize, u64, u64)>,
     low: u64,
     high: u64,
 ) {
@@ -42,7 +58,7 @@ fn extract_ranges_with_even_number_of_digits(
     let mut start = if start_digits.is_multiple_of(2) {
         low
     } else {
-        let new_low = 10u64.pow(start_digits);
+        let new_low = POW_10[start_digits];
         start_digits += 1;
 
         if high < new_low {
@@ -58,11 +74,11 @@ fn extract_ranges_with_even_number_of_digits(
         }
 
         // calculate last valid number with `start_digits` number of digits
-        let end = (10u64.pow(start_digits) - 1).min(high);
+        let end = (POW_10[start_digits] - 1).min(high);
         result.push((start_digits, start, end));
 
         start_digits += 2;
-        start = 10u64.pow(start_digits - 1)
+        start = POW_10[start_digits - 1]
     }
 }
 
