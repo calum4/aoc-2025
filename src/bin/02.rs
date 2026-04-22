@@ -37,12 +37,12 @@ fn count_base_10_digits(n: u64) -> usize {
     count
 }
 
-fn split_base_10_in_half(n: u64, digit_count: usize) -> (u64, u64) {
+fn base_10_split_in_half(n: u64, digit_count: usize) -> (u64, u64) {
     let pow = POW_10[digit_count / 2];
     (n / pow, n % pow)
 }
 
-fn combine_base_10(a: u64, b: u64) -> u64 {
+fn base_10_combine(a: u64, b: u64) -> u64 {
     let b_digits = count_base_10_digits(b);
     (a * (POW_10[b_digits])) + b
 }
@@ -106,17 +106,17 @@ pub fn part_one(input: &str) -> Option<u64> {
 
         for (digits, boundary_start, boundary_end) in test_ranges.iter().cloned() {
             let start = {
-                let (a, b) = split_base_10_in_half(boundary_start, digits);
+                let (a, b) = base_10_split_in_half(boundary_start, digits);
                 a.min(b)
             };
 
             let end = {
-                let (a, b) = split_base_10_in_half(boundary_end, digits);
+                let (a, b) = base_10_split_in_half(boundary_end, digits);
                 a.max(b)
             };
 
-            for i in start..=end {
-                let num = combine_base_10(i, i);
+            for half in start..=end {
+                let num = base_10_combine(half, half);
                 if boundary_start <= num && num <= boundary_end {
                     invalid_sum += num;
                 }
@@ -127,8 +127,57 @@ pub fn part_one(input: &str) -> Option<u64> {
     Some(invalid_sum)
 }
 
+fn base_10_split_digits(digits: &mut Vec<u64>, mut n: u64, digit_count: usize) {
+    digits.resize(digit_count, 0);
+
+    for i in 1..=digit_count {
+        digits[digit_count - i] = n % 10;
+        n /= 10;
+    }
+}
+
+fn contains_pattern(split_digits: &[u64]) -> bool {
+    let digits = split_digits.len();
+
+    for k in 1..=(digits / 2) {
+        if !digits.is_multiple_of(k) {
+            continue;
+        }
+
+        let mut ok = true;
+
+        for i in 0..digits {
+            if split_digits[i] != split_digits[i % k] {
+                ok = false;
+                break;
+            }
+        }
+
+        if ok {
+            return true;
+        }
+    }
+
+    false
+}
+
 pub fn part_two(input: &str) -> Option<u64> {
-    None
+    let mut invalid_sum = 0;
+
+    let mut split_digits = Vec::new();
+
+    for (low, high) in parse_input(input) {
+        for n in low..=high {
+            let digits = count_base_10_digits(n);
+            base_10_split_digits(&mut split_digits, n, digits);
+
+            if contains_pattern(&split_digits) {
+                invalid_sum += n;
+            }
+        }
+    }
+
+    Some(invalid_sum)
 }
 
 #[cfg(test)]
@@ -144,7 +193,7 @@ mod tests {
     #[test]
     fn test_part_two() {
         let result = part_two(&advent_of_code::template::read_file("examples", DAY));
-        assert_eq!(result, None);
+        assert_eq!(result, Some(4174379265));
     }
 
     #[test]
@@ -171,18 +220,18 @@ mod tests {
 
     #[test]
     fn test_split_base_10_in_half() {
-        assert_eq!(split_base_10_in_half(10, 2), (1, 0));
-        assert_eq!(split_base_10_in_half(1432, 4), (14, 32));
-        assert_eq!(split_base_10_in_half(1010, 4), (10, 10));
-        assert_eq!(split_base_10_in_half(59124592, 8), (5912, 4592));
+        assert_eq!(base_10_split_in_half(10, 2), (1, 0));
+        assert_eq!(base_10_split_in_half(1432, 4), (14, 32));
+        assert_eq!(base_10_split_in_half(1010, 4), (10, 10));
+        assert_eq!(base_10_split_in_half(59124592, 8), (5912, 4592));
     }
 
     #[test]
     fn test_combine_base_10() {
-        assert_eq!(combine_base_10(0, 1), 1);
-        assert_eq!(combine_base_10(1, 0), 10);
-        assert_eq!(combine_base_10(1, 1), 11);
-        assert_eq!(combine_base_10(389, 24), 38924);
+        assert_eq!(base_10_combine(0, 1), 1);
+        assert_eq!(base_10_combine(1, 0), 10);
+        assert_eq!(base_10_combine(1, 1), 11);
+        assert_eq!(base_10_combine(389, 24), 38924);
     }
 
     #[test]
@@ -203,5 +252,40 @@ mod tests {
         vec.clear();
         extract_ranges_with_even_number_of_digits(&mut vec, 4531, 777777);
         assert_eq!(vec, vec![(4, 4531, 9999), (6, 100000, 777777)]);
+    }
+
+    #[test]
+    fn test_base_10_split_digits() {
+        let mut vec = Vec::new();
+        base_10_split_digits(&mut vec, 5299153, 7);
+        assert_eq!(vec, vec![5, 2, 9, 9, 1, 5, 3]);
+
+        vec.clear();
+        base_10_split_digits(&mut vec, 13, 2);
+        assert_eq!(vec, vec![1, 3]);
+
+        base_10_split_digits(&mut vec, 1, 1);
+        assert_eq!(vec, vec![1]);
+
+        base_10_split_digits(&mut vec, 3729211618202, 13);
+        assert_eq!(vec, vec![3, 7, 2, 9, 2, 1, 1, 6, 1, 8, 2, 0, 2]);
+    }
+
+    #[test]
+    fn test_contains_pattern() {
+        assert!(contains_pattern(&vec![1, 1]));
+        assert!(!contains_pattern(&vec![1, 2]));
+
+        assert!(contains_pattern(&vec![1, 2, 1, 2]));
+        assert!(!contains_pattern(&vec![1, 2, 2, 2]));
+        assert!(contains_pattern(&vec![2, 2, 2, 2]));
+
+        assert!(contains_pattern(&vec![1, 2, 3, 1, 2, 3]));
+        assert!(contains_pattern(&vec![1, 2, 1, 2, 1, 2]));
+        assert!(!contains_pattern(&vec![1, 2, 1, 2, 1, 1]));
+
+        assert!(contains_pattern(&vec![7, 7, 7, 7, 7, 7, 7, 7, 7, 7]));
+        assert!(contains_pattern(&vec![1, 2, 1, 2, 1, 2, 1, 2, 1, 2]));
+        assert!(contains_pattern(&vec![1, 2, 3, 4, 5, 1, 2, 3, 4, 5]));
     }
 }
