@@ -1,5 +1,3 @@
-use std::ops::RangeInclusive;
-
 advent_of_code::solution!(2);
 
 fn count_base_10_digits(n: u64) -> u32 {
@@ -28,8 +26,13 @@ fn split_base_10_in_half(n: u64, digit_count: u32) -> (u64, u64) {
     (n / pow, n % pow)
 }
 
+fn combine_base_10(a: u64, b: u64) -> u64 {
+    let b_digits = count_base_10_digits(b);
+    (a * (10u64.pow(b_digits))) + b
+}
+
 fn extract_ranges_with_even_number_of_digits(
-    result: &mut Vec<(u32, RangeInclusive<u64>)>,
+    result: &mut Vec<(u32, u64, u64)>,
     low: u64,
     high: u64,
 ) {
@@ -56,7 +59,7 @@ fn extract_ranges_with_even_number_of_digits(
 
         // calculate last valid number with `start_digits` number of digits
         let end = (10u64.pow(start_digits) - 1).min(high);
-        result.push((start_digits, start..=end));
+        result.push((start_digits, start, end));
 
         start_digits += 2;
         start = 10u64.pow(start_digits - 1)
@@ -85,11 +88,21 @@ pub fn part_one(input: &str) -> Option<u64> {
         test_ranges.clear();
         extract_ranges_with_even_number_of_digits(&mut test_ranges, low, high);
 
-        for (digits, range) in test_ranges.iter().cloned() {
-            for i in range {
-                let (a, b) = split_base_10_in_half(i, digits);
-                if a == b {
-                    invalid_sum += i;
+        for (digits, boundary_start, boundary_end) in test_ranges.iter().cloned() {
+            let start = {
+                let (a, b) = split_base_10_in_half(boundary_start, digits);
+                a.min(b)
+            };
+
+            let end = {
+                let (a, b) = split_base_10_in_half(boundary_end, digits);
+                a.max(b)
+            };
+
+            for i in start..=end {
+                let num = combine_base_10(i, i);
+                if boundary_start <= num && num <= boundary_end {
+                    invalid_sum += num;
                 }
             }
         }
@@ -149,22 +162,30 @@ mod tests {
     }
 
     #[test]
+    fn test_combine_base_10() {
+        assert_eq!(combine_base_10(0, 1), 1);
+        assert_eq!(combine_base_10(1, 0), 10);
+        assert_eq!(combine_base_10(1, 1), 11);
+        assert_eq!(combine_base_10(389, 24), 38924);
+    }
+
+    #[test]
     fn test_extract_ranges_with_even_number_of_digits() {
         let mut vec = Vec::new();
 
         extract_ranges_with_even_number_of_digits(&mut vec, 0, 10);
-        assert_eq!(vec, vec![(2, 10..=10)]);
+        assert_eq!(vec, vec![(2, 10, 10)]);
 
         vec.clear();
         extract_ranges_with_even_number_of_digits(&mut vec, 0, 100);
-        assert_eq!(vec, vec![(2, 10..=99)]);
+        assert_eq!(vec, vec![(2, 10, 99)]);
 
         vec.clear();
         extract_ranges_with_even_number_of_digits(&mut vec, 13, 100);
-        assert_eq!(vec, vec![(2, 13..=99)]);
+        assert_eq!(vec, vec![(2, 13, 99)]);
 
         vec.clear();
         extract_ranges_with_even_number_of_digits(&mut vec, 4531, 777777);
-        assert_eq!(vec, vec![(4, 4531..=9999), (6, 100000..=777777)]);
+        assert_eq!(vec, vec![(4, 4531, 9999), (6, 100000, 777777)]);
     }
 }
