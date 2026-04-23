@@ -161,9 +161,9 @@ fn contains_pattern(split_digits: &[u64]) -> bool {
     false
 }
 
+// TODO - Optimise
 pub fn part_two(input: &str) -> Option<u64> {
     let mut invalid_sum = 0;
-
     let mut split_digits = Vec::new();
 
     for (low, high) in parse_input(input) {
