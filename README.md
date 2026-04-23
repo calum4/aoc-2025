@@ -213,6 +213,13 @@ cargo fmt
 cargo clippy
 ```
 
+### Profiling
+
+```sh
+cargo build --bin <day> --profile profiling
+samply record --rate 70000 ./target/profiling/<day>
+```
+
 ## Optional template features
 
 ### Configure aoc-cli integration
