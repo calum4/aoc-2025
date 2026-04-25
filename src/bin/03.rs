@@ -9,27 +9,23 @@ pub fn part_one(input: &str) -> Option<u64> {
         .lines()
         .map(|line| line.as_bytes())
         .map(|bytes| {
-            let mut working = [0, 0];
+            let mut best = (b'0', bytes[bytes.len() - 1]);
 
-            for i in 0..(bytes.len() - 1) {
-                let a = bytes[i];
-
-                if a < working[0] {
-                    continue;
-                }
-
-                for b in bytes[(i + 1)..].iter() {
-                    let b = *b;
-
-                    if working[0] < a || (working[0] == a && working[1] < b) {
-                        working = [a, b];
+            for byte in bytes[..bytes.len() - 1].iter().copied().rev() {
+                if byte > best.0 {
+                    if best.0 > best.1 {
+                        best.1 = best.0;
                     }
+
+                    best.0 = byte;
+                } else if byte == best.0 && byte > best.1 {
+                    best.1 = best.0;
                 }
             }
 
-            working.iter_mut().for_each(|i| *i -= b'0');
+            best = (best.0 - b'0', best.1 - b'0');
 
-            combine_digits(working[0] as u64, working[1] as u64)
+            combine_digits(best.0 as u64, best.1 as u64)
         })
         .sum();
 
