@@ -33,7 +33,38 @@ pub fn part_one(input: &str) -> Option<u64> {
 }
 
 pub fn part_two(input: &str) -> Option<u64> {
-    None
+    let joltage = input
+        .lines()
+        .map(|line| line.as_bytes())
+        .map(|bytes| {
+            let mut result: u64 = 0;
+            let mut start = 0usize;
+
+            for t in 0..12 {
+                let last = bytes.len() - (12 - t);
+                let mut best = b'0';
+                let mut best_idx = start;
+
+                for (i, byte) in bytes.iter().enumerate().take(last + 1).skip(start) {
+                    if *byte > best {
+                        best = *byte;
+                        best_idx = i;
+
+                        if best == b'9' {
+                            break;
+                        }
+                    }
+                }
+
+                result = result * 10 + (best - b'0') as u64;
+                start = best_idx + 1;
+            }
+
+            result
+        })
+        .sum();
+
+    Some(joltage)
 }
 
 #[cfg(test)]
@@ -49,6 +80,6 @@ mod tests {
     #[test]
     fn test_part_two() {
         let result = part_two(&advent_of_code::template::read_file("examples", DAY));
-        assert_eq!(result, None);
+        assert_eq!(result, Some(3121910778619));
     }
 }
