@@ -97,13 +97,17 @@ pub fn part_one(input: &str) -> Option<u64> {
 }
 
 pub fn part_two(input: &str) -> Option<u64> {
-    let (mut grid, mut to_check) = parse_input(input);
-    let mut to_remove = Vec::with_capacity(to_check.len());
-
+    let (mut grid, to_check) = parse_input(input);
     let mut result = 0;
 
     loop {
-        for (to_check_index, coordinate) in to_check.iter().enumerate() {
+        let mut did_remove = false;
+
+        for coordinate in &to_check {
+            if !grid[coordinate.index].0 {
+                continue;
+            }
+
             let mut total = 0;
 
             let adjacent_indexes = coordinate.adjacent_indexes();
@@ -119,6 +123,7 @@ pub fn part_two(input: &str) -> Option<u64> {
 
             // Less than 5 because the coordinate origin (not adjacent) is counted in the total
             if total < 5 {
+                did_remove = true;
                 result += 1;
 
                 if let Some(prev) = coordinate
@@ -129,6 +134,7 @@ pub fn part_two(input: &str) -> Option<u64> {
                     prev.1 -= 1;
                 }
 
+                grid[coordinate.index].0 = false;
                 grid[coordinate.index].1 -= 1;
 
                 {
@@ -137,21 +143,11 @@ pub fn part_two(input: &str) -> Option<u64> {
                         grid[next_index].1 -= 1;
                     }
                 }
-
-                to_remove.push(to_check_index);
             }
         }
 
-        if to_remove.is_empty() {
+        if !did_remove {
             break;
-        } else {
-            to_remove.sort_unstable();
-
-            for index in to_remove.iter().copied().rev() {
-                to_check.remove(index); // TODO - This is horrible for performance, fix
-            }
-
-            to_remove.clear();
         }
     }
 
