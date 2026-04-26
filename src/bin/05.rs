@@ -7,8 +7,33 @@ const RANGE_LEN: usize = 4;
 #[cfg(not(test))]
 const RANGE_LEN: usize = 182;
 
-fn parse_input(input: &str) -> ([(u64, u64); RANGE_LEN], impl Iterator<Item = u64> + '_) {
-    let mut ranges = [(0, 0); RANGE_LEN];
+#[derive(Debug, Copy, Clone, Default, Eq, PartialEq)]
+struct Range {
+    start: u64,
+    end: u64,
+}
+
+impl Range {
+    fn contains(&self, value: u64) -> bool {
+        self.start <= value && value <= self.end
+    }
+
+    /// # Returns
+    /// `true` if merge was successful, `false` if not
+    fn merge(&mut self, other: &Self) -> bool {
+        if other.start <= self.end.saturating_add(1) && other.end >= self.start.saturating_sub(1) {
+            self.start = self.start.min(other.start);
+            self.end = self.end.max(other.end);
+
+            true
+        } else {
+            false
+        }
+    }
+}
+
+fn parse_input(input: &str) -> (Vec<Range>, impl Iterator<Item = u64> + '_) {
+    let mut ranges = [Range::default(); RANGE_LEN];
     let mut lines = input.lines();
 
     for (index, line) in lines.by_ref().enumerate() {
@@ -20,12 +45,27 @@ fn parse_input(input: &str) -> ([(u64, u64); RANGE_LEN], impl Iterator<Item = u6
         let start = u64::from_str(split.next().unwrap()).unwrap();
         let end = u64::from_str(split.next().unwrap()).unwrap();
 
-        ranges[index] = (start, end);
+        ranges[index] = Range { start, end };
+    }
+
+    ranges.sort_unstable_by(|a, b| a.start.cmp(&b.start));
+
+    let mut merged = Vec::with_capacity(ranges.len());
+    merged.push(ranges[0]);
+
+    for next in ranges.into_iter().skip(1) {
+        if let Some(prev) = merged.last_mut()
+            && prev.merge(&next)
+        {
+            continue;
+        }
+
+        merged.push(next);
     }
 
     let ids = lines.map(|line| u64::from_str(line).unwrap());
 
-    (ranges, ids)
+    (merged, ids)
 }
 
 pub fn part_one(input: &str) -> Option<u64> {
@@ -33,8 +73,8 @@ pub fn part_one(input: &str) -> Option<u64> {
     let mut result = 0;
 
     for id in ids {
-        for range in ranges {
-            if range.0 <= id && id <= range.1 {
+        for range in &ranges {
+            if range.contains(id) {
                 result += 1;
                 break;
             }
@@ -62,5 +102,74 @@ mod tests {
     fn test_part_two() {
         let result = part_two(&advent_of_code::template::read_file("examples", DAY));
         assert_eq!(result, None);
+    }
+
+    #[test]
+    fn test_range_merge() {
+        {
+            let a = Range { start: 1, end: 3 };
+            let b = Range { start: 1, end: 5 };
+
+            let mut a2 = a;
+            assert!(a2.merge(&b));
+
+            let res = Range { start: 1, end: 5 };
+            assert_eq!(a2, res);
+        }
+
+        {
+            let a = Range { start: 1, end: 3 };
+            let b = Range { start: 2, end: 7 };
+
+            let mut a2 = a;
+            assert!(a2.merge(&b));
+
+            let res = Range { start: 1, end: 7 };
+            assert_eq!(a2, res);
+        }
+
+        {
+            let a = Range { start: 8, end: 9 };
+            let b = Range { start: 0, end: 7 };
+
+            let mut a2 = a;
+            assert!(a2.merge(&b));
+
+            let res = Range { start: 0, end: 9 };
+            assert_eq!(a2, res);
+        }
+
+        {
+            let a = Range { start: 5, end: 9 };
+            let b = Range { start: 0, end: 7 };
+
+            let mut a2 = a;
+            assert!(a2.merge(&b));
+
+            let res = Range { start: 0, end: 9 };
+            assert_eq!(a2, res);
+        }
+
+        {
+            let a = Range { start: 1, end: 2 };
+            let b = Range { start: 3, end: 4 };
+
+            let mut a2 = a;
+            assert!(a2.merge(&b));
+
+            let res = Range { start: 1, end: 4 };
+            assert_eq!(a2, res);
+        }
+
+        {
+            let a = Range { start: 1, end: 2 };
+            let b = Range { start: 4, end: 5 };
+
+            let mut a2 = a;
+            assert!(!a2.merge(&b));
+
+            let res = Range { start: 1, end: 2 };
+            assert_eq!(a2, res);
+        }
     }
 }
