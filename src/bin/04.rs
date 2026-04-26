@@ -48,7 +48,10 @@ fn parse_input(input: &str) -> ([(bool, u8); LEN * LEN], Vec<Coordinate>) {
             let hit = elem == '@';
             let mut cur_count = 0;
 
-            if let Some(prev) = index.checked_sub(LEN).map(|prev_x_index| &mut grid[prev_x_index]) {
+            if let Some(prev) = index
+                .checked_sub(LEN)
+                .map(|prev_x_index| &mut grid[prev_x_index])
+            {
                 if hit {
                     prev.1 += 1;
                 }
@@ -94,7 +97,65 @@ pub fn part_one(input: &str) -> Option<u64> {
 }
 
 pub fn part_two(input: &str) -> Option<u64> {
-    None
+    let (mut grid, mut to_check) = parse_input(input);
+    let mut to_remove = Vec::with_capacity(to_check.len());
+
+    let mut result = 0;
+
+    loop {
+        for (to_check_index, coordinate) in to_check.iter().enumerate() {
+            let mut total = 0;
+
+            let adjacent_indexes = coordinate.adjacent_indexes();
+
+            {
+                let mut iter = adjacent_indexes.into_iter();
+                while let Some(Some(index)) = iter.next()
+                    && total < 5
+                {
+                    total += grid[index].1;
+                }
+            }
+
+            // Less than 5 because the coordinate origin (not adjacent) is counted in the total
+            if total < 5 {
+                result += 1;
+
+                if let Some(prev) = coordinate
+                    .index
+                    .checked_sub(LEN)
+                    .map(|prev_x_index| &mut grid[prev_x_index])
+                {
+                    prev.1 -= 1;
+                }
+
+                grid[coordinate.index].1 -= 1;
+
+                {
+                    let next_index = coordinate.index + LEN;
+                    if next_index < LEN * LEN {
+                        grid[next_index].1 -= 1;
+                    }
+                }
+
+                to_remove.push(to_check_index);
+            }
+        }
+
+        if to_remove.is_empty() {
+            break;
+        } else {
+            to_remove.sort_unstable();
+
+            for index in to_remove.iter().copied().rev() {
+                to_check.remove(index); // TODO - This is horrible for performance, fix
+            }
+
+            to_remove.clear();
+        }
+    }
+
+    Some(result)
 }
 
 #[cfg(test)]
@@ -110,6 +171,6 @@ mod tests {
     #[test]
     fn test_part_two() {
         let result = part_two(&advent_of_code::template::read_file("examples", DAY));
-        assert_eq!(result, None);
+        assert_eq!(result, Some(43));
     }
 }
