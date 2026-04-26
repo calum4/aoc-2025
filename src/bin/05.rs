@@ -89,7 +89,14 @@ pub fn part_one(input: &str) -> Option<u64> {
 }
 
 pub fn part_two(input: &str) -> Option<u64> {
-    None
+    let (ranges, _) = parse_input(input);
+    let mut result = 0;
+
+    for range in ranges {
+        result += range.end - range.start + 1;
+    }
+
+    Some(result)
 }
 
 #[cfg(test)]
@@ -105,7 +112,7 @@ mod tests {
     #[test]
     fn test_part_two() {
         let result = part_two(&advent_of_code::template::read_file("examples", DAY));
-        assert_eq!(result, None);
+        assert_eq!(result, Some(14));
     }
 
     #[test]
