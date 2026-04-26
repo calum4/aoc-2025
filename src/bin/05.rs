@@ -1,3 +1,4 @@
+use std::cmp::Ordering;
 use std::str::FromStr;
 
 advent_of_code::solution!(5);
@@ -14,10 +15,6 @@ struct Range {
 }
 
 impl Range {
-    fn contains(&self, value: u64) -> bool {
-        self.start <= value && value <= self.end
-    }
-
     /// # Returns
     /// `true` if merge was successful, `false` if not
     fn merge(&mut self, other: &Self) -> bool {
@@ -73,11 +70,18 @@ pub fn part_one(input: &str) -> Option<u64> {
     let mut result = 0;
 
     for id in ids {
-        for range in &ranges {
-            if range.contains(id) {
-                result += 1;
-                break;
+        let search_res = ranges.binary_search_by(|range| {
+            if id < range.start {
+                Ordering::Greater
+            } else if range.end < id {
+                Ordering::Less
+            } else {
+                Ordering::Equal
             }
+        });
+
+        if search_res.is_ok() {
+            result += 1;
         }
     }
 
