@@ -1,4 +1,4 @@
-use std::str::{FromStr, Lines};
+use std::str::FromStr;
 
 advent_of_code::solution!(5);
 
@@ -7,7 +7,7 @@ const RANGE_LEN: usize = 4;
 #[cfg(not(test))]
 const RANGE_LEN: usize = 182;
 
-fn parse_input(input: &str) -> ([(u64, u64); RANGE_LEN], Lines<'_>) {
+fn parse_input(input: &str) -> ([(u64, u64); RANGE_LEN], impl Iterator<Item = u64> + '_) {
     let mut ranges = [(0, 0); RANGE_LEN];
     let mut lines = input.lines();
 
@@ -17,23 +17,22 @@ fn parse_input(input: &str) -> ([(u64, u64); RANGE_LEN], Lines<'_>) {
         }
 
         let mut split = line.split('-');
-
         let start = u64::from_str(split.next().unwrap()).unwrap();
         let end = u64::from_str(split.next().unwrap()).unwrap();
 
         ranges[index] = (start, end);
     }
 
-    (ranges, lines)
+    let ids = lines.map(|line| u64::from_str(line).unwrap());
+
+    (ranges, ids)
 }
 
 pub fn part_one(input: &str) -> Option<u64> {
-    let (ranges, lines) = parse_input(input);
+    let (ranges, ids) = parse_input(input);
     let mut result = 0;
 
-    for line in lines {
-        let id = u64::from_str(line).unwrap();
-
+    for id in ids {
         for range in ranges {
             if range.0 <= id && id <= range.1 {
                 result += 1;
