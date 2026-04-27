@@ -141,8 +141,8 @@ pub fn part_two(input: &str) -> Option<u64> {
         .lines()
         .map(str::trim_end)
         .inspect(|line| max_column_index = max_column_index.max(line.len() - 1))
-        .map(|line| line.as_bytes())
-        .collect::<Vec<&[u8]>>();
+        .map(|line| line.as_bytes().to_vec())
+        .collect::<Vec<Vec<u8>>>();
 
     let mut result = 0;
     let mut buff: Vec<u64> = Vec::with_capacity(lines.len() - 1);
@@ -154,7 +154,7 @@ pub fn part_two(input: &str) -> Option<u64> {
         let mut mul = 1;
 
         for (row_index, row) in lines.iter().rev().enumerate() {
-            let byte = match row.get(column_index).cloned() {
+            let byte = match row.get(column_index).copied() {
                 Some(byte) if row_index == 0 => {
                     if byte != b' ' {
                         result += calculate_buff(&buff, operator);
