@@ -9,6 +9,16 @@ enum Operation {
     Mul,
 }
 
+impl Operation {
+    fn from_char(c: char) -> Operation {
+        match c {
+            '+' => Operation::Add,
+            '*' => Operation::Mul,
+            _ => unreachable!(),
+        }
+    }
+}
+
 impl FromStr for Operation {
     type Err = ();
 
@@ -113,8 +123,69 @@ pub fn part_one(input: &str) -> Option<u64> {
     Some(sum)
 }
 
+fn calculate_buff(buff: &[u64], operator: Operation) -> u64 {
+    let init = match operator {
+        Operation::Add => 0,
+        Operation::Mul => 1,
+    };
+
+    buff.iter().fold(init, |acc, v| match operator {
+        Operation::Add => acc + v,
+        Operation::Mul => acc * v,
+    })
+}
+
 pub fn part_two(input: &str) -> Option<u64> {
-    None
+    let mut max_column_index = 0;
+    let lines = input
+        .lines()
+        .map(str::trim_end)
+        .inspect(|line| max_column_index = max_column_index.max(line.len() - 1))
+        .map(|line| line.as_bytes())
+        .collect::<Vec<&[u8]>>();
+
+    let mut result = 0;
+    let mut buff: Vec<u64> = Vec::new();
+
+    let mut operator = Operation::Add;
+    let mut operator_index = 0;
+
+    for column_index in 0..=max_column_index {
+        let mut pow = 0;
+
+        for (row_index, row) in lines.iter().rev().enumerate() {
+            let byte = match row.get(column_index).cloned() {
+                Some(byte) if row_index == 0 => {
+                    if byte != b' ' {
+                        result += calculate_buff(&buff, operator);
+                        buff.clear();
+
+                        operator = Operation::from_char(byte as char);
+                        operator_index = 0;
+                    }
+
+                    continue;
+                }
+                Some(b' ') => continue,
+                Some(byte) => byte,
+                None => continue,
+            };
+
+            let num = (byte - b'0') as u64 * 10u64.pow(pow);
+            pow += 1;
+
+            match buff.get_mut(operator_index) {
+                None => buff.push(num),
+                Some(value) => *value += num,
+            }
+        }
+
+        operator_index += 1;
+    }
+
+    result += calculate_buff(&buff, operator);
+
+    Some(result)
 }
 
 #[cfg(test)]
@@ -130,6 +201,6 @@ mod tests {
     #[test]
     fn test_part_two() {
         let result = part_two(&advent_of_code::template::read_file("examples", DAY));
-        assert_eq!(result, None);
+        assert_eq!(result, Some(3263827));
     }
 }
