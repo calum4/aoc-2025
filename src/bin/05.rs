@@ -45,7 +45,7 @@ fn parse_input(input: &str) -> (Vec<Range>, impl Iterator<Item = u64> + '_) {
         ranges[index] = Range { start, end };
     }
 
-    ranges.sort_unstable_by(|a, b| a.start.cmp(&b.start));
+    ranges.sort_unstable_by_key(|range| range.start);
 
     let mut merged = Vec::with_capacity(ranges.len());
     merged.push(ranges[0]);
