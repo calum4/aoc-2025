@@ -145,13 +145,13 @@ pub fn part_two(input: &str) -> Option<u64> {
         .collect::<Vec<&[u8]>>();
 
     let mut result = 0;
-    let mut buff: Vec<u64> = Vec::new();
+    let mut buff: Vec<u64> = Vec::with_capacity(lines.len() - 1);
 
     let mut operator = Operation::Add;
     let mut operator_index = 0;
 
     for column_index in 0..=max_column_index {
-        let mut pow = 0;
+        let mut mul = 1;
 
         for (row_index, row) in lines.iter().rev().enumerate() {
             let byte = match row.get(column_index).cloned() {
@@ -171,8 +171,8 @@ pub fn part_two(input: &str) -> Option<u64> {
                 None => continue,
             };
 
-            let num = (byte - b'0') as u64 * 10u64.pow(pow);
-            pow += 1;
+            let num = (byte - b'0') as u64 * mul;
+            mul *= 10;
 
             match buff.get_mut(operator_index) {
                 None => buff.push(num),
