@@ -50,8 +50,8 @@ pub fn part_one(input: &str) -> Option<u64> {
         .map(|(a, b)| (*a, *b, a.distance(b)))
         .collect::<Vec<(Coordinate, Coordinate, u64)>>();
 
-    junction_distances.sort_unstable_by_key(|value| value.2);
-
+    let (sorted_junction_distances, _, _) =
+        junction_distances.select_nth_unstable_by_key(PAIRS, |value| value.2);
     let mut circuits: Vec<Vec<Coordinate>> = Vec::new();
 
     fn find_circuit_index(circuits: &[Vec<Coordinate>], coordinate: &Coordinate) -> Option<usize> {
@@ -64,9 +64,9 @@ pub fn part_one(input: &str) -> Option<u64> {
         None
     }
 
-    for (a, b, _) in junction_distances.into_iter().take(PAIRS) {
-        let a_index = find_circuit_index(&circuits, &a);
-        let b_index = find_circuit_index(&circuits, &b);
+    for (a, b, _) in sorted_junction_distances {
+        let a_index = find_circuit_index(&circuits, a);
+        let b_index = find_circuit_index(&circuits, b);
 
         match (a_index, b_index) {
             (Some(a_index), Some(b_index)) => {
@@ -75,13 +75,13 @@ pub fn part_one(input: &str) -> Option<u64> {
                 circuits[a_index].extend(b_circuit);
             }
             (Some(a_index), None) => {
-                circuits[a_index].push(b);
+                circuits[a_index].push(*b);
             }
             (None, Some(b_index)) => {
-                circuits[b_index].push(a);
+                circuits[b_index].push(*a);
             }
             (None, None) => {
-                circuits.push(vec![a, b]);
+                circuits.push(vec![*a, *b]);
             }
         }
     }
@@ -92,9 +92,7 @@ pub fn part_one(input: &str) -> Option<u64> {
         .collect();
     circuit_sizes.sort_unstable();
 
-    let result: u64 = circuit_sizes.iter().rev().take(3).product();
-
-    Some(result)
+    Some(circuit_sizes.iter().rev().take(3).product())
 }
 
 pub fn part_two(input: &str) -> Option<u64> {
