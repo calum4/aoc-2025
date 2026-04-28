@@ -25,6 +25,7 @@ test_lib = []
 
 [dependencies]
 wide = { version = "1.3.0", features = [] }
+itertools = "0.14.0"
 
 # Template dependencies
 chrono = { version = "0.4.38", optional = true }
